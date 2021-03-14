@@ -25,20 +25,20 @@ func homeHandler(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(rw, "Hello from home handler %s", req.URL)
 }
 
-func logger(fn http.HandlerFunc) func(http.ResponseWriter, *http.Request) {
-	return func(rw http.ResponseWriter, req *http.Request) {
+func withLogger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		start := time.Now()
-		fn(rw, req)
+		next.ServeHTTP(rw, req)
 		end := time.Since(start)
 		fmt.Printf("%s %s processing time %s\n", req.Method, req.URL, end)
-	}
+	})
 }
 
 func main() {
 	mux := http.DefaultServeMux
 
-	mux.Handle("/api", apiHandler{})
-	mux.HandleFunc("/home", logger(homeHandler))
+	mux.Handle("/api", withLogger(apiHandler{}))
+	mux.Handle("/home", withLogger(http.HandlerFunc(homeHandler)))
 
 	http.ListenAndServe(":3000", mux)
 }
